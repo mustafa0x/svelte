@@ -223,7 +223,7 @@ if (typeof HTMLElement === 'function') {
 }
 
 /**
- * Base class for Svelte components. Used when dev=false.
+ * Base class for Svelte components.
  */
 export class SvelteComponent {
 	$$: T$$;
