@@ -3,6 +3,7 @@
 import { DEV } from 'esm-env';
 import {
 	clear_text_content,
+	create_comment,
 	create_text,
 	get_first_child,
 	get_next_sibling,
@@ -12,7 +13,14 @@ import { HYDRATION_END, HYDRATION_ERROR, HYDRATION_START } from '../../constants
 import { active_effect } from './runtime.js';
 import { push, pop, component_context } from './context.js';
 import { component_root } from './reactivity/effects.js';
-import { hydrate_node, hydrating, set_hydrate_node, set_hydrating } from './dom/hydration.js';
+import {
+	hydrate_node,
+	hydrating,
+	mounting_hydratable,
+	set_hydrate_node,
+	set_hydrating,
+	set_mounting_hydratable
+} from './dom/hydration.js';
 import { array_from } from '../shared/utils.js';
 import {
 	all_registered_events,
@@ -161,7 +169,7 @@ const listeners = new Map();
  */
 function _mount(
 	Component,
-	{ target, anchor, props = {}, events, context, intro = true, transformError }
+	{ target, anchor, props = {}, events, context, intro = true, transformError, hydratable = false }
 ) {
 	init_operations();
 
@@ -170,7 +178,23 @@ function _mount(
 	var component = undefined;
 
 	var unmount = component_root(() => {
-		var anchor_node = anchor ?? target.appendChild(create_text());
+		var hydratable_mount = hydratable && !hydrating;
+		/** @type {Node} */
+		var anchor_node;
+		/** @type {Comment | undefined} */
+		var start_marker;
+
+		if (hydratable_mount) {
+			anchor_node =
+				anchor === undefined
+					? target.appendChild(create_comment(HYDRATION_END))
+					: target.insertBefore(create_comment(HYDRATION_END), anchor);
+
+			start_marker = create_comment(HYDRATION_START);
+			target.insertBefore(start_marker, anchor_node);
+		} else {
+			anchor_node = anchor ?? target.appendChild(create_text());
+		}
 
 		boundary(
 			/** @type {TemplateNode} */ (anchor_node),
@@ -192,9 +216,16 @@ function _mount(
 				}
 
 				should_intro = intro;
-				// @ts-expect-error the public typings are not what the actual function looks like
-				component = Component(anchor_node, props) || {};
-				should_intro = true;
+				var was_mounting_hydratable = mounting_hydratable;
+				set_mounting_hydratable(hydratable_mount);
+
+				try {
+					// @ts-expect-error the public typings are not what the actual function looks like
+					component = Component(anchor_node, props) || {};
+				} finally {
+					set_mounting_hydratable(was_mounting_hydratable);
+					should_intro = true;
+				}
 
 				if (hydrating) {
 					/** @type {Effect & { nodes: EffectNodes }} */ (active_effect).nodes.end = hydrate_node;
@@ -281,6 +312,8 @@ function _mount(
 			if (anchor_node !== anchor) {
 				anchor_node.parentNode?.removeChild(anchor_node);
 			}
+
+			start_marker?.parentNode?.removeChild(start_marker);
 		};
 	});
 

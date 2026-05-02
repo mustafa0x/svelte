@@ -1,4 +1,9 @@
-import { hydrate_next, hydrating } from '../hydration.js';
+import {
+	create_hydration_marker,
+	hydrate_next,
+	hydrating,
+	mounting_hydratable
+} from '../hydration.js';
 
 /**
  * @param {Comment} anchor
@@ -10,6 +15,8 @@ import { hydrate_next, hydrating } from '../hydration.js';
 export function slot(anchor, $$props, name, slot_props, fallback_fn) {
 	if (hydrating) {
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		anchor = /** @type {Comment} */ (create_hydration_marker(anchor));
 	}
 
 	var slot_fn = $$props.$$slots?.[name];

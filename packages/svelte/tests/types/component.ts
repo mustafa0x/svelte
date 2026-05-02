@@ -130,6 +130,7 @@ mount(NewComponent, {
 	},
 	immutable: true,
 	intro: false,
+	hydratable: true,
 	recover: false
 });
 mount(

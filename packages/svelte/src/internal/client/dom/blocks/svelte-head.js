@@ -1,6 +1,12 @@
 /** @import { TemplateNode } from '#client' */
-import { hydrate_node, hydrating, set_hydrate_node, set_hydrating } from '../hydration.js';
-import { create_text, get_first_child, get_next_sibling } from '../operations.js';
+import {
+	hydrate_node,
+	hydrating,
+	mounting_hydratable,
+	set_hydrate_node,
+	set_hydrating
+} from '../hydration.js';
+import { create_comment, create_text, get_first_child, get_next_sibling } from '../operations.js';
 import { block, branch } from '../../reactivity/effects.js';
 import { COMMENT_NODE, HEAD_EFFECT } from '#client/constants';
 
@@ -17,6 +23,8 @@ export function head(hash, render_fn) {
 
 	/** @type {Comment | Text} */
 	var anchor;
+	/** @type {Comment | null} */
+	var marker = null;
 
 	if (hydrating) {
 		previous_hydrate_node = hydrate_node;
@@ -45,13 +53,25 @@ export function head(hash, render_fn) {
 	}
 
 	if (!hydrating) {
-		anchor = document.head.appendChild(create_text());
+		if (mounting_hydratable) {
+			marker = document.head.appendChild(create_comment(hash));
+			anchor = document.head.appendChild(create_comment());
+		} else {
+			anchor = document.head.appendChild(create_text());
+		}
 	}
 
 	try {
 		block(() => {
 			var e = branch(() => render_fn(anchor));
 			e.f |= HEAD_EFFECT;
+
+			if (marker !== null) {
+				return () => {
+					marker?.remove();
+					anchor.remove();
+				};
+			}
 		});
 	} finally {
 		if (was_hydrating) {

@@ -340,6 +340,11 @@ export type MountOptions<Props extends Record<string, any> = Record<string, any>
 	 */
 	intro?: boolean;
 	/**
+	 * Whether to emit SSR-compatible hydration markers while mounting.
+	 * @default false
+	 */
+	hydratable?: boolean;
+	/**
 	 * A function that transforms errors caught by error boundaries before they are passed to the `failed` snippet.
 	 * Defaults to the identity function.
 	 */

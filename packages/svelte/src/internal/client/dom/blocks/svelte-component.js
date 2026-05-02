@@ -2,9 +2,12 @@
 import { EFFECT_TRANSPARENT } from '#client/constants';
 import { block } from '../../reactivity/effects.js';
 import {
+	create_hydration_marker,
+	get_hydration_open,
 	hydrate_next,
 	hydrate_node,
 	hydrating,
+	mounting_hydratable,
 	read_hydration_instruction,
 	set_hydrate_node,
 	set_hydrating,
@@ -28,6 +31,10 @@ export function component(node, get_component, render_fn) {
 	if (hydrating) {
 		hydration_start_node = hydrate_node;
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		hydration_start_node = node;
+		node = create_hydration_marker(node, HYDRATION_START_ELSE);
+		hydration_start_node = get_hydration_open(node);
 	}
 
 	var branches = new BranchManager(node);
@@ -54,6 +61,9 @@ export function component(node, get_component, render_fn) {
 
 				return;
 			}
+		} else if (mounting_hydratable) {
+			/** @type {Comment} */ (hydration_start_node).data =
+				component === null ? HYDRATION_START_ELSE : HYDRATION_START;
 		}
 
 		branches.ensure(component, component && ((target) => render_fn(target, component)));

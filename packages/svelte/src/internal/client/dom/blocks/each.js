@@ -7,12 +7,16 @@ import {
 	EACH_ITEM_IMMUTABLE,
 	EACH_ITEM_REACTIVE,
 	HYDRATION_END,
+	HYDRATION_START,
 	HYDRATION_START_ELSE
 } from '../../../../constants.js';
 import {
+	create_hydration_marker,
+	get_hydration_open,
 	hydrate_next,
 	hydrate_node,
 	hydrating,
+	mounting_hydratable,
 	read_hydration_instruction,
 	skip_nodes,
 	set_hydrate_node,
@@ -20,6 +24,7 @@ import {
 } from '../hydration.js';
 import {
 	clear_text_content,
+	create_comment,
 	create_text,
 	get_first_child,
 	get_next_sibling,
@@ -180,6 +185,8 @@ var offscreen_anchor;
  */
 export function each(node, flags, get_collection, get_key, render_fn, fallback_fn = null) {
 	var anchor = node;
+	/** @type {Comment | undefined} */
+	var marker;
 
 	/** @type {Map<any, EachItem>} */
 	var items = new Map();
@@ -191,7 +198,18 @@ export function each(node, flags, get_collection, get_key, render_fn, fallback_f
 
 		anchor = hydrating
 			? set_hydrate_node(get_first_child(parent_node))
-			: parent_node.appendChild(create_text());
+			: mounting_hydratable
+				? parent_node.appendChild(create_comment(HYDRATION_END))
+				: parent_node.appendChild(create_text());
+
+		if (mounting_hydratable && !hydrating) {
+			marker = create_comment(HYDRATION_START);
+			anchor.before(marker);
+		}
+	} else if (mounting_hydratable && !hydrating) {
+		marker = /** @type {Comment} */ (anchor);
+		anchor = create_hydration_marker(anchor);
+		marker = get_hydration_open(anchor);
 	}
 
 	if (hydrating) {
@@ -281,6 +299,8 @@ export function each(node, flags, get_collection, get_key, render_fn, fallback_f
 				set_hydrating(false);
 				mismatch = true;
 			}
+		} else if (mounting_hydratable && marker) {
+			marker.data = length === 0 && fallback_fn ? HYDRATION_START_ELSE : HYDRATION_START;
 		}
 
 		var keys = new Set();

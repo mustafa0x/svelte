@@ -21,6 +21,42 @@ export function set_hydrating(value) {
 	hydrating = value;
 }
 
+export let mounting_hydratable = false;
+
+/** @param {boolean} value */
+export function set_mounting_hydratable(value) {
+	mounting_hydratable = value;
+}
+
+/**
+ * @param {TemplateNode} node
+ * @param {string} [open]
+ * @param {string} [close]
+ * @returns {TemplateNode}
+ */
+export function create_hydration_marker(node, open = HYDRATION_START, close = HYDRATION_END) {
+	if (hydrating || !mounting_hydratable || node.nodeType !== COMMENT_NODE) return node;
+
+	var marker = document.createComment(open);
+	node.before(marker);
+
+	var anchor = /** @type {Comment} */ (node);
+	anchor.data = close;
+	// @ts-expect-error used by blocks that update the opening marker
+	anchor.__svelte_hydration_open = marker;
+
+	return node;
+}
+
+/**
+ * @param {TemplateNode} node
+ * @returns {Comment}
+ */
+export function get_hydration_open(node) {
+	// @ts-expect-error set by create_hydration_marker
+	return node.__svelte_hydration_open ?? node;
+}
+
 /**
  * The node that is currently being hydrated. This starts out as the first node inside the opening
  * <!--[--> comment, and updates each time a component calls `$.child(...)` or `$.sibling(...)`.

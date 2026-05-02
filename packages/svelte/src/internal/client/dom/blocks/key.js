@@ -1,7 +1,12 @@
 /** @import { TemplateNode } from '#client' */
 import { is_runes } from '../../context.js';
 import { block } from '../../reactivity/effects.js';
-import { hydrate_next, hydrating } from '../hydration.js';
+import {
+	create_hydration_marker,
+	hydrate_next,
+	hydrating,
+	mounting_hydratable
+} from '../hydration.js';
 import { BranchManager } from './branches.js';
 
 const NAN = Symbol('NaN');
@@ -16,6 +21,8 @@ const NAN = Symbol('NaN');
 export function key(node, get_key, render_fn) {
 	if (hydrating) {
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		node = create_hydration_marker(node, '', '');
 	}
 
 	var branches = new BranchManager(node);

@@ -1,12 +1,17 @@
 /** @import { Effect, Source, TemplateNode, } from '#client' */
 import {
 	BOUNDARY_EFFECT,
+	COMMENT_NODE,
 	DIRTY,
 	EFFECT_PRESERVED,
 	EFFECT_TRANSPARENT,
 	MAYBE_DIRTY
 } from '#client/constants';
-import { HYDRATION_START_ELSE, HYDRATION_START_FAILED } from '../../../../constants.js';
+import {
+	HYDRATION_START,
+	HYDRATION_START_ELSE,
+	HYDRATION_START_FAILED
+} from '../../../../constants.js';
 import { component_context, set_component_context } from '../../context.js';
 import { handle_error, invoke_error_boundary } from '../../error-handling.js';
 import {
@@ -27,6 +32,9 @@ import {
 	hydrate_next,
 	hydrate_node,
 	hydrating,
+	mounting_hydratable,
+	create_hydration_marker,
+	get_hydration_open,
 	next,
 	skip_nodes,
 	set_hydrate_node
@@ -143,6 +151,15 @@ export class Boundary {
 	constructor(node, props, children, transform_error) {
 		this.#anchor = node;
 		this.#props = props;
+
+		if (
+			mounting_hydratable &&
+			node.nodeType === COMMENT_NODE &&
+			/** @type {Comment} */ (node).data === ''
+		) {
+			this.#anchor = create_hydration_marker(node);
+			this.#hydrate_open = get_hydration_open(this.#anchor);
+		}
 
 		this.#children = (anchor) => {
 			var effect = /** @type {Effect} */ (active_effect);
@@ -302,12 +319,20 @@ export class Boundary {
 			});
 
 			if (this.#pending_count > 0) {
+				if (mounting_hydratable && this.#hydrate_open) {
+					/** @type {Comment} */ (this.#hydrate_open).data = HYDRATION_START_ELSE;
+				}
+
 				var fragment = (this.#offscreen_fragment = document.createDocumentFragment());
 				move_effect(this.#main_effect, fragment);
 
 				const pending = /** @type {(anchor: Node) => void} */ (this.#props.pending);
 				this.#pending_effect = branch(() => pending(this.#anchor));
 			} else {
+				if (mounting_hydratable && this.#hydrate_open) {
+					/** @type {Comment} */ (this.#hydrate_open).data = HYDRATION_START;
+				}
+
 				this.#resolve(/** @type {Batch} */ (current_batch));
 			}
 		} catch (error) {

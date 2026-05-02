@@ -2,11 +2,14 @@
 import { flatten } from '../../reactivity/async.js';
 import { get } from '../../runtime.js';
 import {
+	create_hydration_marker,
 	hydrate_next,
 	hydrate_node,
 	hydrating,
+	mounting_hydratable,
 	set_hydrate_node,
 	set_hydrating,
+	set_mounting_hydratable,
 	skip_nodes
 } from '../hydration.js';
 import { assign_nodes } from '../template.js';
@@ -19,12 +22,15 @@ import { assign_nodes } from '../template.js';
  */
 export function async(node, blockers = [], expressions = [], fn) {
 	var was_hydrating = hydrating;
+	var was_mounting_hydratable = mounting_hydratable;
 	var end = null;
 
 	if (was_hydrating) {
 		hydrate_next();
 		end = skip_nodes(false);
 		assign_nodes(node, end); // Necessary if this wraps the sole child of a block, else end marker can be wrong
+	} else if (mounting_hydratable) {
+		node = create_hydration_marker(node);
 	}
 
 	if (expressions.length === 0 && blockers.every((b) => b.settled)) {
@@ -55,12 +61,18 @@ export function async(node, blockers = [], expressions = [], fn) {
 			set_hydrate_node(previous_hydrate_node);
 		}
 
+		var previous_mounting_hydratable = mounting_hydratable;
+
 		try {
+			set_mounting_hydratable(was_mounting_hydratable);
+
 			// get values eagerly to avoid creating blocks if they reject
 			for (const d of values) get(d);
 
 			fn(node, ...values);
 		} finally {
+			set_mounting_hydratable(previous_mounting_hydratable);
+
 			if (was_hydrating) {
 				set_hydrating(false);
 			}

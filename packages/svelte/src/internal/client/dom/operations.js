@@ -1,5 +1,5 @@
 /** @import { Effect, TemplateNode } from '#client' */
-import { hydrate_node, hydrating, set_hydrate_node } from './hydration.js';
+import { hydrate_node, hydrating, mounting_hydratable, set_hydrate_node } from './hydration.js';
 import { DEV } from 'esm-env';
 import { init_array_prototype_warnings } from '../dev/equality.js';
 import { get_descriptor, is_extensible } from '../../shared/utils.js';
@@ -143,7 +143,9 @@ export function first_child(node, is_text = false) {
 		var first = get_first_child(node);
 
 		// TODO prevent user comments with the empty string when preserveComments is true
-		if (first instanceof Comment && first.data === '') return get_next_sibling(first);
+		if (!mounting_hydratable && first instanceof Comment && first.data === '') {
+			return get_next_sibling(first);
+		}
 
 		return first;
 	}

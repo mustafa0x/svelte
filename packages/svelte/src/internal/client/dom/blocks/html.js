@@ -7,14 +7,25 @@ import {
 	NAMESPACE_MATHML
 } from '../../../../constants.js';
 import { remove_effect_dom, template_effect } from '../../reactivity/effects.js';
-import { hydrate_next, hydrate_node, hydrating, set_hydrate_node } from '../hydration.js';
+import {
+	hydrate_next,
+	hydrate_node,
+	hydrating,
+	mounting_hydratable,
+	set_hydrate_node
+} from '../hydration.js';
 
 import { assign_nodes } from '../template.js';
 import * as w from '../../warnings.js';
 import { hash, sanitize_location } from '../../../../utils.js';
 import { DEV } from 'esm-env';
 import { dev_current_component_function } from '../../context.js';
-import { create_element, get_first_child, get_next_sibling } from '../operations.js';
+import {
+	create_comment,
+	create_element,
+	get_first_child,
+	get_next_sibling
+} from '../operations.js';
 import { active_effect } from '../../runtime.js';
 import { COMMENT_NODE } from '#client/constants';
 
@@ -57,6 +68,8 @@ export function html(
 	skip_warning = false
 ) {
 	var anchor = node;
+	/** @type {Comment | undefined} */
+	var marker;
 
 	/** @type {string | TrustedHTML} */
 	var value = '';
@@ -66,7 +79,13 @@ export function html(
 
 		if (hydrating) {
 			anchor = set_hydrate_node(get_first_child(parent_node));
+		} else if (mounting_hydratable) {
+			marker = parent_node.appendChild(create_comment());
+			anchor = parent_node.appendChild(create_comment());
 		}
+	} else if (mounting_hydratable) {
+		marker = create_comment();
+		node.before(marker);
 	}
 
 	template_effect(() => {
@@ -75,6 +94,10 @@ export function html(
 		if (value === (value = get_value() ?? '')) {
 			if (hydrating) hydrate_next();
 			return;
+		}
+
+		if (marker) {
+			marker.data = DEV ? hash(String(value ?? '')) : '';
 		}
 
 		if (is_controlled && !hydrating) {
@@ -103,7 +126,7 @@ export function html(
 		if (hydrating) {
 			// We're deliberately not trying to repair mismatches between server and client,
 			// as it's costly and error-prone (and it's an edge case to have a mismatch anyway)
-			var hash = /** @type {Comment} */ (hydrate_node).data;
+			var server_hash = /** @type {Comment} */ (hydrate_node).data;
 
 			/** @type {TemplateNode | null} */
 			var next = hydrate_next();
@@ -123,7 +146,7 @@ export function html(
 			}
 
 			if (DEV && !skip_warning) {
-				check_hash(/** @type {Element} */ (next.parentNode), hash, value);
+				check_hash(/** @type {Element} */ (next.parentNode), server_hash, value);
 			}
 
 			assign_nodes(hydrate_node, last);

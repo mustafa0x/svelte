@@ -1,6 +1,12 @@
 /** @import { Effect, EffectNodes, TemplateNode } from '#client' */
 /** @import { TemplateStructure } from './types' */
-import { hydrate_next, hydrate_node, hydrating, set_hydrate_node } from './hydration.js';
+import {
+	hydrate_next,
+	hydrate_node,
+	hydrating,
+	mounting_hydratable,
+	set_hydrate_node
+} from './hydration.js';
 import {
 	create_text,
 	get_first_child,
@@ -32,6 +38,13 @@ import {
 
 const TEMPLATE_TAG = IS_XHTML ? 'template' : 'TEMPLATE';
 const SCRIPT_TAG = IS_XHTML ? 'script' : 'SCRIPT';
+
+/** @param {Node} node */
+function remove_hydratable_fragment_start(node) {
+	if (mounting_hydratable) {
+		get_first_child(node)?.remove();
+	}
+}
 
 /**
  * @param {TemplateNode} start
@@ -79,6 +92,10 @@ export function from_html(content, flags) {
 		);
 
 		if (is_fragment) {
+			if (mounting_hydratable && !has_start) {
+				remove_hydratable_fragment_start(clone);
+			}
+
 			var start = /** @type {TemplateNode} */ (get_first_child(clone));
 			var end = /** @type {TemplateNode} */ (clone.lastChild);
 
@@ -134,6 +151,10 @@ function from_namespace(content, flags, ns = 'svg') {
 		var clone = /** @type {TemplateNode} */ (node.cloneNode(true));
 
 		if (is_fragment) {
+			if (!has_start) {
+				remove_hydratable_fragment_start(clone);
+			}
+
 			var start = /** @type {TemplateNode} */ (get_first_child(clone));
 			var end = /** @type {TemplateNode} */ (clone.lastChild);
 
@@ -246,6 +267,10 @@ export function from_tree(structure, flags) {
 		);
 
 		if (is_fragment) {
+			if (structure[0] == null) {
+				remove_hydratable_fragment_start(clone);
+			}
+
 			var start = /** @type {TemplateNode} */ (get_first_child(clone));
 			var end = /** @type {TemplateNode} */ (clone.lastChild);
 

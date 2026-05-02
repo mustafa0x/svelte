@@ -3,15 +3,19 @@ import { is_promise } from '../../../shared/utils.js';
 import { block } from '../../reactivity/effects.js';
 import { internal_set, mutable_source, source } from '../../reactivity/sources.js';
 import {
+	create_hydration_marker,
+	get_hydration_open,
 	hydrate_next,
 	hydrating,
+	mounting_hydratable,
 	skip_nodes,
 	set_hydrate_node,
 	set_hydrating,
-	hydrate_node
+	hydrate_node,
+	set_mounting_hydratable
 } from '../hydration.js';
 import { queue_micro_task } from '../task.js';
-import { HYDRATION_START_ELSE, UNINITIALIZED } from '../../../../constants.js';
+import { HYDRATION_START, HYDRATION_START_ELSE, UNINITIALIZED } from '../../../../constants.js';
 import { is_runes } from '../../context.js';
 import { Batch, current_batch, flushSync, is_flushing_sync } from '../../reactivity/batch.js';
 import { BranchManager } from './branches.js';
@@ -34,8 +38,16 @@ const CATCH = 2;
  * @returns {void}
  */
 export function await_block(node, get_input, pending_fn, then_fn, catch_fn) {
+	var was_mounting_hydratable = mounting_hydratable;
+	/** @type {Comment | undefined} */
+	var marker;
+
 	if (hydrating) {
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		marker = /** @type {Comment} */ (node);
+		node = create_hydration_marker(node);
+		marker = get_hydration_open(node);
 	}
 
 	var runes = is_runes();
@@ -60,6 +72,10 @@ export function await_block(node, get_input, pending_fn, then_fn, catch_fn) {
 		/** Whether or not there was a hydration mismatch. Needs to be a `let` or else it isn't treeshaken out */
 		// @ts-ignore coercing `node` to a `Comment` causes TypeScript and Prettier to fight
 		let mismatch = hydrating && is_promise(input) === (node.data === HYDRATION_START_ELSE);
+
+		if (mounting_hydratable && marker) {
+			marker.data = is_promise(input) ? HYDRATION_START : HYDRATION_START_ELSE;
+		}
 
 		if (mismatch) {
 			// Hydration mismatch: remove everything inside the anchor and start fresh
@@ -92,9 +108,19 @@ export function await_block(node, get_input, pending_fn, then_fn, catch_fn) {
 				// Make sure we have a batch, since the branch manager expects one to exist
 				Batch.ensure();
 
+				if (hydrating) {
+					// `restore()` could set `hydrating` to `true`, which we very much
+					// don't want — we want to restore everything _except_ this
+					set_hydrating(false);
+				}
+
+				var previous_mounting_hydratable = mounting_hydratable;
+
 				try {
+					set_mounting_hydratable(was_mounting_hydratable);
 					fn();
 				} finally {
+					set_mounting_hydratable(previous_mounting_hydratable);
 					unset_context(false);
 
 					// without this, the DOM does not update until two ticks after the promise

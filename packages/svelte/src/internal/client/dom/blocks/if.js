@@ -3,12 +3,16 @@ import { EFFECT_TRANSPARENT } from '#client/constants';
 import {
 	hydrate_next,
 	hydrating,
+	mounting_hydratable,
 	read_hydration_instruction,
 	skip_nodes,
 	set_hydrate_node,
 	set_hydrating,
-	hydrate_node
+	hydrate_node,
+	create_hydration_marker,
+	get_hydration_open
 } from '../hydration.js';
+import { HYDRATION_START } from '../../../../constants.js';
 import { block } from '../../reactivity/effects.js';
 import { BranchManager } from './branches.js';
 
@@ -24,6 +28,10 @@ export function if_block(node, fn, elseif = false) {
 	if (hydrating) {
 		marker = hydrate_node;
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		marker = node;
+		node = create_hydration_marker(node, `${HYDRATION_START}-1`);
+		marker = get_hydration_open(node);
 	}
 
 	var branches = new BranchManager(node);
@@ -52,6 +60,8 @@ export function if_block(node, fn, elseif = false) {
 
 				return;
 			}
+		} else if (mounting_hydratable) {
+			/** @type {Comment} */ (marker).data = `${HYDRATION_START}${key}`;
 		}
 
 		branches.ensure(key, fn);
