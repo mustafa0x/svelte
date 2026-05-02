@@ -4,7 +4,8 @@
 		items = [1, 2],
 		answer = 42,
 		keyed = 'alpha',
-		raw = '<strong>raw</strong>'
+		raw = '<strong>raw</strong>',
+		more_link = true
 	} = $props();
 </script>
 
@@ -31,3 +32,5 @@
 {/key}
 
 {@html raw}
+
+<svelte:element this={more_link ? 'a' : 'div'} data-kind="more">more</svelte:element>

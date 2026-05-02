@@ -1,13 +1,15 @@
 /** @import { Effect, EffectNodes, TemplateNode } from '#client' */
 import { FILENAME, NAMESPACE_SVG } from '../../../../constants.js';
 import {
+	create_hydration_marker,
 	hydrate_next,
 	hydrate_node,
 	hydrating,
+	mounting_hydratable,
 	set_hydrate_node,
 	set_hydrating
 } from '../hydration.js';
-import { create_element, create_text, get_first_child } from '../operations.js';
+import { create_comment, create_element, create_text, get_first_child } from '../operations.js';
 import { block, teardown } from '../../reactivity/effects.js';
 import { set_should_intro } from '../../render.js';
 import { active_effect } from '../../runtime.js';
@@ -33,6 +35,8 @@ export function element(node, get_tag, is_svg, render_fn, get_namespace, locatio
 
 	if (hydrating) {
 		hydrate_next();
+	} else if (mounting_hydratable) {
+		node = create_hydration_marker(node, '', '');
 	}
 
 	var filename = DEV && location && component_context?.function[FILENAME];
@@ -99,7 +103,11 @@ export function element(node, get_tag, is_svg, render_fn, get_namespace, locatio
 					// inner open and close methods can pick up the existing nodes correctly
 					var child_anchor = hydrating
 						? get_first_child(element)
-						: element.appendChild(create_text());
+						: element.appendChild(
+								mounting_hydratable && !is_raw_text_element(next_tag)
+									? create_comment()
+									: create_text()
+							);
 
 					if (hydrating) {
 						if (child_anchor === null) {

@@ -6,7 +6,8 @@ const props = {
 	items: [1, 2],
 	answer: 42,
 	keyed: 'alpha',
-	raw: '<strong>raw</strong>'
+	raw: '<strong>raw</strong>',
+	more_link: true
 };
 
 export default test({
