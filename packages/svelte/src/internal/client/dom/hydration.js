@@ -7,6 +7,7 @@ import {
 	HYDRATION_START,
 	HYDRATION_START_ELSE
 } from '../../../constants.js';
+import { active_effect } from '../runtime.js';
 import * as w from '../warnings.js';
 import { get_next_sibling } from './operations.js';
 
@@ -39,6 +40,9 @@ export function create_hydration_marker(node, open = HYDRATION_START, close = HY
 
 	var marker = document.createComment(open);
 	node.before(marker);
+	if (active_effect?.nodes?.start === node) {
+		active_effect.nodes.start = marker;
+	}
 
 	var anchor = /** @type {Comment} */ (node);
 	anchor.data = close;
