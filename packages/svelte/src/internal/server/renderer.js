@@ -7,12 +7,12 @@ import { pop, push, set_ssr_context, ssr_context } from './context.js';
 import * as e from './errors.js';
 import * as w from './warnings.js';
 import { BLOCK_CLOSE, BLOCK_OPEN } from './hydration.js';
-import { HYDRATION_START_FAILED } from '../../constants.js';
 import { attributes } from './index.js';
 import { get_render_context, with_render_context, init_render_context } from './render-context.js';
 import { sha256 } from './crypto.js';
 import * as devalue from 'devalue';
 import { has_own_property, noop } from '../shared/utils.js';
+import { serialize_failed_boundary } from '../shared/hydration.js';
 import { escape_html } from '../../escaping.js';
 
 /** @typedef {'head' | 'body'} RendererType */
@@ -496,9 +496,7 @@ export class Renderer {
 	 * @returns {string}
 	 */
 	static #serialize_failed_boundary(error) {
-		var json = JSON.stringify(error);
-		var escaped = json.replace(/>/g, '\\u003e').replace(/</g, '\\u003c');
-		return `<!--${HYDRATION_START_FAILED}${escaped}-->`;
+		return `<!--${serialize_failed_boundary(error)}-->`;
 	}
 
 	/**

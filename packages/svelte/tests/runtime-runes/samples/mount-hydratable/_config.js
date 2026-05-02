@@ -1,4 +1,4 @@
-import { flushSync, hydrate, mount, unmount } from 'svelte';
+import { flushSync, hydrate, mount, tick, unmount } from 'svelte';
 import { test } from '../../test';
 
 const props = {
@@ -21,15 +21,28 @@ export default test({
 			target,
 			props,
 			hydratable: true,
-			intro: false
+			intro: false,
+			transformError: (error) => ({
+				message: error instanceof Error ? error.message : String(error)
+			})
 		});
 
+		flushSync();
+		await tick();
 		flushSync();
 
 		const html = target.innerHTML;
 		assert.include(html, '<!--[-->');
 		assert.include(html, '<!--[0-->');
+		assert.include(html, '<!--$');
+		assert.include(html, '<!--[?');
 		assert.include(html, '<!--]-->');
+
+		const controlled = /** @type {HTMLDivElement} */ (
+			target.querySelector('[data-controlled-html]')
+		);
+		assert.equal(controlled.firstChild?.nodeType, Node.COMMENT_NODE);
+		assert.equal(controlled.lastChild?.nodeType, Node.COMMENT_NODE);
 
 		await unmount(mounted);
 
@@ -38,9 +51,14 @@ export default test({
 			target,
 			props,
 			intro: false,
-			recover: false
+			recover: false,
+			transformError: (error) => ({
+				message: error instanceof Error ? error.message : String(error)
+			})
 		});
 
+		flushSync();
+		await tick();
 		flushSync();
 
 		assert.deepEqual(warnings, []);

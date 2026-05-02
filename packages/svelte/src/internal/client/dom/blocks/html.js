@@ -106,7 +106,18 @@ export function html(
 			effect.nodes = null;
 			parent_node.innerHTML = /** @type {string} */ (value);
 
-			if (value !== '') {
+			if (mounting_hydratable) {
+				marker = create_comment(DEV ? hash(String(value ?? '')) : '');
+				parent_node.prepend(marker);
+				anchor = parent_node.appendChild(create_comment());
+
+				var start = /** @type {TemplateNode | null} */ (get_next_sibling(marker));
+				var end = /** @type {TemplateNode | null} */ (anchor.previousSibling);
+
+				if (start !== anchor) {
+					assign_nodes(/** @type {TemplateNode} */ (start), /** @type {TemplateNode} */ (end));
+				}
+			} else if (value !== '') {
 				assign_nodes(
 					/** @type {TemplateNode} */ (get_first_child(parent_node)),
 					/** @type {TemplateNode} */ (parent_node.lastChild)

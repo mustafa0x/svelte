@@ -12,6 +12,7 @@ import {
 	HYDRATION_START_ELSE,
 	HYDRATION_START_FAILED
 } from '../../../../constants.js';
+import { serialize_failed_boundary } from '../../../shared/hydration.js';
 import { component_context, set_component_context } from '../../context.js';
 import { handle_error, invoke_error_boundary } from '../../error-handling.js';
 import {
@@ -90,6 +91,8 @@ export class Boundary {
 	/** @type {TemplateNode | null} */
 	#hydrate_open = hydrating ? hydrate_node : null;
 
+	#hydratable_mount = false;
+
 	/** @type {BoundaryProps} */
 	#props;
 
@@ -159,6 +162,7 @@ export class Boundary {
 		) {
 			this.#anchor = create_hydration_marker(node);
 			this.#hydrate_open = get_hydration_open(this.#anchor);
+			this.#hydratable_mount = true;
 		}
 
 		this.#children = (anchor) => {
@@ -514,6 +518,11 @@ export class Boundary {
 			invoke_onerror();
 
 			if (failed) {
+				if (this.#hydratable_mount && this.#hydrate_open) {
+					/** @type {Comment} */ (this.#hydrate_open).data =
+						serialize_failed_boundary(transformed_error);
+				}
+
 				this.#failed_effect = this.#run(() => {
 					try {
 						return branch(() => {

@@ -576,7 +576,9 @@ export function client_component(analysis, options) {
 
 	if (analysis.props_id) {
 		// need to be placed on first line of the component for hydration
-		component_block.body.unshift(b.const(analysis.props_id, b.call('$.props_id')));
+		component_block.body.unshift(
+			b.const(analysis.props_id, b.call('$.props_id', b.id('$$anchor')))
+		);
 	}
 
 	if (state.events.size > 0) {

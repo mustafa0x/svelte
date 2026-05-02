@@ -405,8 +405,9 @@ export function append(anchor, dom) {
 
 /**
  * Create (or hydrate) an unique UID for the component instance.
+ * @param {TemplateNode} [anchor]
  */
-export function props_id() {
+export function props_id(anchor) {
 	if (
 		hydrating &&
 		hydrate_node &&
@@ -422,5 +423,11 @@ export function props_id() {
 	(window.__svelte ??= {}).uid ??= 1;
 
 	// @ts-expect-error
-	return `c${window.__svelte.uid++}`;
+	const id = `c${window.__svelte.uid++}`;
+
+	if (mounting_hydratable) {
+		anchor?.before(create_comment(`$${id}`));
+	}
+
+	return id;
 }
