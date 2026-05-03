@@ -33,6 +33,12 @@ import { assign_nodes } from './dom/template.js';
 import { is_passive_event } from '../../utils.js';
 import { COMMENT_NODE, STATE_SYMBOL, TEXT_CACHE } from './constants.js';
 import { boundary } from './dom/blocks/boundary.js';
+import {
+	hydration_debug,
+	hydration_debug_error,
+	hydration_debug_markers,
+	hydration_debug_node
+} from './debug.js';
 
 /**
  * This is normally true — block effects should run their intro transitions —
@@ -108,25 +114,45 @@ export function hydrate(component, options) {
 	const previous_hydrate_node = hydrate_node;
 
 	try {
+		hydration_debug('hydrate:start', {
+			target: hydration_debug_node(target),
+			markers: hydration_debug_markers(target)
+		});
+
 		var anchor = get_first_child(target);
+		var skipped = 0;
 
 		while (
 			anchor &&
 			(anchor.nodeType !== COMMENT_NODE || /** @type {Comment} */ (anchor).data !== HYDRATION_START)
 		) {
 			anchor = get_next_sibling(anchor);
+			skipped += 1;
 		}
 
 		if (!anchor) {
+			hydration_debug('hydrate:anchor-missing', {
+				skipped,
+				target: hydration_debug_node(target),
+				markers: hydration_debug_markers(target)
+			});
 			throw HYDRATION_ERROR;
 		}
 
 		set_hydrating(true);
 		set_hydrate_node(/** @type {Comment} */ (anchor));
+		hydration_debug('hydrate:anchor-found', {
+			skipped,
+			anchor: hydration_debug_node(anchor)
+		});
 
 		const instance = _mount(component, { ...options, anchor });
 
 		set_hydrating(false);
+		hydration_debug('hydrate:success', {
+			hydrate_node: hydration_debug_node(hydrate_node),
+			markers: hydration_debug_markers(target)
+		});
 
 		return /**  @type {Exports} */ (instance);
 	} catch (error) {
@@ -146,9 +172,19 @@ export function hydrate(component, options) {
 			e.hydration_failed();
 		}
 
+		hydration_debug('hydrate:recover', {
+			error: hydration_debug_error(error),
+			target: hydration_debug_node(target),
+			markers: hydration_debug_markers(target)
+		});
+
 		// If an error occurred above, the operations might not yet have been initialised.
 		init_operations();
 		clear_text_content(target);
+		hydration_debug('hydrate:target-cleared', {
+			target: hydration_debug_node(target),
+			markers: hydration_debug_markers(target)
+		});
 
 		set_hydrating(false);
 		return mount(component, options);
@@ -172,6 +208,13 @@ function _mount(
 	{ target, anchor, props = {}, events, context, intro = true, transformError, hydratable = false }
 ) {
 	init_operations();
+	hydration_debug('mount:start', {
+		target: hydration_debug_node(target),
+		anchor: hydration_debug_node(anchor),
+		hydrating,
+		hydratable,
+		intro
+	});
 
 	/** @type {Exports} */
 	// @ts-expect-error will be defined because the render effect runs synchronously
@@ -194,6 +237,10 @@ function _mount(
 
 			start_marker = create_comment(HYDRATION_START);
 			target.insertBefore(start_marker, anchor_node);
+			hydration_debug('mount:hydratable-markers-created', {
+				start_marker: hydration_debug_node(start_marker),
+				anchor_node: hydration_debug_node(anchor_node)
+			});
 		} else {
 			anchor_node = anchor ?? target.appendChild(create_text());
 		}
@@ -221,8 +268,19 @@ function _mount(
 				set_mounting_hydratable(was_mounting_hydratable || hydratable_mount);
 
 				try {
+					hydration_debug('mount:component-start', {
+						hydrating,
+						hydratable_mount,
+						anchor_node: hydration_debug_node(anchor_node),
+						hydrate_node: hydration_debug_node(hydrate_node)
+					});
 					// @ts-expect-error the public typings are not what the actual function looks like
 					component = Component(anchor_node, props) || {};
+					hydration_debug('mount:component-done', {
+						hydrating,
+						hydratable_mount,
+						hydrate_node: hydration_debug_node(hydrate_node)
+					});
 					keep_mounting_hydratable = hydratable_mount;
 				} finally {
 					if (!keep_mounting_hydratable) {
@@ -239,9 +297,15 @@ function _mount(
 						hydrate_node.nodeType !== COMMENT_NODE ||
 						/** @type {Comment} */ (hydrate_node).data !== HYDRATION_END
 					) {
+						hydration_debug('mount:hydrate-end-mismatch', {
+							hydrate_node: hydration_debug_node(hydrate_node)
+						});
 						w.hydration_mismatch();
 						throw HYDRATION_ERROR;
 					}
+					hydration_debug('mount:hydrate-end-ok', {
+						hydrate_node: hydration_debug_node(hydrate_node)
+					});
 				}
 
 				pop();

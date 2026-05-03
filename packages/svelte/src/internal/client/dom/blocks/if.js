@@ -15,6 +15,7 @@ import {
 import { HYDRATION_START } from '../../../../constants.js';
 import { block } from '../../reactivity/effects.js';
 import { BranchManager } from './branches.js';
+import { hydration_debug, hydration_debug_node } from '../../debug.js';
 
 /**
  * @param {TemplateNode} node
@@ -49,6 +50,12 @@ export function if_block(node, fn, elseif = false) {
 			if (key !== parseInt(data.substring(1))) {
 				// Hydration mismatch: remove everything inside the anchor and start fresh.
 				// This could happen with `{#if browser}...{/if}`, for example
+				hydration_debug('if:mismatch', {
+					server: data,
+					client: key,
+					marker: hydration_debug_node(marker),
+					hydrate_node: hydration_debug_node(hydrate_node)
+				});
 				var anchor = skip_nodes();
 
 				set_hydrate_node(anchor);

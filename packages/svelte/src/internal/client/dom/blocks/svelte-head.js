@@ -9,6 +9,7 @@ import {
 import { create_comment, create_text, get_first_child, get_next_sibling } from '../operations.js';
 import { block, branch } from '../../reactivity/effects.js';
 import { COMMENT_NODE, HEAD_EFFECT } from '#client/constants';
+import { hydration_debug, hydration_debug_node } from '../../debug.js';
 
 /**
  * @param {string} hash
@@ -43,12 +44,17 @@ export function head(hash, render_fn) {
 		// If we can't find an opening hydration marker, skip hydration (this can happen
 		// if a framework rendered body but not head content)
 		if (head_anchor === null) {
+			hydration_debug('head:marker-missing', { hash });
 			set_hydrating(false);
 		} else {
 			var start = /** @type {TemplateNode} */ (get_next_sibling(head_anchor));
 			head_anchor.remove(); // in case this component is repeated
 
 			set_hydrate_node(start);
+			hydration_debug('head:marker-found', {
+				hash,
+				start: hydration_debug_node(start)
+			});
 		}
 	}
 
@@ -56,6 +62,11 @@ export function head(hash, render_fn) {
 		if (mounting_hydratable) {
 			marker = document.head.appendChild(create_comment(hash));
 			anchor = document.head.appendChild(create_comment());
+			hydration_debug('head:marker-created', {
+				hash,
+				marker: hydration_debug_node(marker),
+				anchor: hydration_debug_node(anchor)
+			});
 		} else {
 			anchor = document.head.appendChild(create_text());
 		}

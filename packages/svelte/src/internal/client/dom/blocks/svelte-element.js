@@ -20,6 +20,7 @@ import { assign_nodes } from '../template.js';
 import { is_raw_text_element } from '../../../../utils.js';
 import { BranchManager } from './branches.js';
 import { set_animation_effect_override } from '../elements/transitions.js';
+import { hydration_debug, hydration_debug_node } from '../../debug.js';
 
 /**
  * @param {Comment | Element} node
@@ -47,6 +48,10 @@ export function element(node, get_tag, is_svg, render_fn, get_namespace, locatio
 	if (hydrating && hydrate_node.nodeType === ELEMENT_NODE) {
 		element = /** @type {Element} */ (hydrate_node);
 		hydrate_next();
+	} else if (hydrating) {
+		hydration_debug('svelte-element:element-missing', {
+			hydrate_node: hydration_debug_node(hydrate_node)
+		});
 	}
 
 	var anchor = /** @type {TemplateNode} */ (hydrating ? hydrate_node : node);
@@ -76,6 +81,13 @@ export function element(node, get_tag, is_svg, render_fn, get_namespace, locatio
 		branches.ensure(next_tag, (anchor) => {
 			if (next_tag) {
 				element = hydrating ? /** @type {Element} */ (element) : create_element(next_tag, ns);
+				if (hydrating) {
+					hydration_debug('svelte-element:hydrate', {
+						client_tag: next_tag,
+						server_element: hydration_debug_node(element),
+						anchor: hydration_debug_node(anchor)
+					});
+				}
 
 				if (DEV && location) {
 					// @ts-expect-error
@@ -111,6 +123,10 @@ export function element(node, get_tag, is_svg, render_fn, get_namespace, locatio
 
 					if (hydrating) {
 						if (child_anchor === null) {
+							hydration_debug('svelte-element:child-missing', {
+								client_tag: next_tag,
+								server_element: hydration_debug_node(element)
+							});
 							set_hydrating(false);
 						} else {
 							set_hydrate_node(child_anchor);

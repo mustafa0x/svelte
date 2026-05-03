@@ -15,6 +15,7 @@ import {
 } from '../hydration.js';
 import { BranchManager } from './branches.js';
 import { HYDRATION_START, HYDRATION_START_ELSE } from '../../../../constants.js';
+import { hydration_debug, hydration_debug_node } from '../../debug.js';
 
 /**
  * @template P
@@ -50,6 +51,13 @@ export function component(node, get_component, render_fn) {
 
 			if (server_had_component !== client_has_component) {
 				// Hydration mismatch: skip the server-rendered nodes and render fresh
+				hydration_debug('component:mismatch', {
+					server: data,
+					server_had_component,
+					client_has_component,
+					hydration_start_node: hydration_debug_node(hydration_start_node),
+					hydrate_node: hydration_debug_node(hydrate_node)
+				});
 				var anchor = skip_nodes();
 
 				set_hydrate_node(anchor);

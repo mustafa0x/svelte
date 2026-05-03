@@ -45,6 +45,7 @@ import { Batch, collected_effects, current_batch } from './batch.js';
 import { flatten } from './async.js';
 import { without_reactive_context } from '../dom/elements/bindings/shared.js';
 import { set_signal_status } from './status.js';
+import { hydration_debug, hydration_debug_node } from '../debug.js';
 
 /**
  * @param {'$effect' | '$effect.pre' | '$inspect'} rune
@@ -568,12 +569,28 @@ export function destroy_effect(effect, remove_dom = true) {
  * @param {TemplateNode} end
  */
 export function remove_effect_dom(node, end) {
+	var start = node;
+	var removed = 0;
+	/** @type {unknown[]} */
+	var sample = [];
+
 	while (node !== null) {
 		/** @type {TemplateNode | null} */
 		var next = node === end ? null : get_next_sibling(node);
 
+		removed += 1;
+		if (sample.length < 8) sample.push(hydration_debug_node(node));
 		node.remove();
 		node = next;
+	}
+
+	if (removed > 0) {
+		hydration_debug('effect-dom:remove', {
+			removed,
+			start: hydration_debug_node(start),
+			end: hydration_debug_node(end),
+			sample
+		});
 	}
 }
 

@@ -9,6 +9,7 @@ import {
 } from '../../../constants.js';
 import { active_effect } from '../runtime.js';
 import * as w from '../warnings.js';
+import { hydration_debug, hydration_debug_node, hydration_debug_stack } from '../debug.js';
 import { get_next_sibling } from './operations.js';
 
 /**
@@ -19,6 +20,13 @@ export let hydrating = false;
 
 /** @param {boolean} value */
 export function set_hydrating(value) {
+	if (hydrating !== value) {
+		hydration_debug('hydrating:set', {
+			from: hydrating,
+			to: value,
+			hydrate_node: hydration_debug_node(hydrate_node)
+		});
+	}
 	hydrating = value;
 }
 
@@ -26,6 +34,14 @@ export let mounting_hydratable = false;
 
 /** @param {boolean} value */
 export function set_mounting_hydratable(value) {
+	if (mounting_hydratable !== value) {
+		hydration_debug('mounting-hydratable:set', {
+			from: mounting_hydratable,
+			to: value,
+			hydrating,
+			hydrate_node: hydration_debug_node(hydrate_node)
+		});
+	}
 	mounting_hydratable = value;
 }
 
@@ -64,6 +80,12 @@ export function create_hydration_marker(node, open = HYDRATION_START, close = HY
 	anchor.data = close;
 	// @ts-expect-error used by blocks that update the opening marker
 	anchor.__svelte_hydration_open = marker;
+	hydration_debug('marker:create', {
+		open,
+		close,
+		marker: hydration_debug_node(marker),
+		anchor: hydration_debug_node(anchor)
+	});
 
 	return node;
 }
@@ -89,6 +111,9 @@ export let hydrate_node;
 /** @param {TemplateNode | null} node */
 export function set_hydrate_node(node) {
 	if (node === null) {
+		hydration_debug('hydrate-node:null', {
+			current: hydration_debug_node(hydrate_node)
+		});
 		w.hydration_mismatch();
 		throw HYDRATION_ERROR;
 	}
@@ -109,6 +134,11 @@ export function reset(node) {
 
 	// If the node has remaining siblings, something has gone wrong
 	if (get_next_sibling(hydrate_node) !== null) {
+		hydration_debug('hydrate:reset-mismatch', {
+			node: hydration_debug_node(node),
+			hydrate_node: hydration_debug_node(hydrate_node),
+			next: hydration_debug_node(get_next_sibling(hydrate_node))
+		});
 		w.hydration_mismatch();
 		throw HYDRATION_ERROR;
 	}
@@ -148,13 +178,27 @@ export function next(count = 1) {
 export function skip_nodes(remove = true) {
 	var depth = 0;
 	var node = hydrate_node;
+	var start = node;
+	var removed = 0;
+	/** @type {unknown[]} */
+	var sample = [];
 
 	while (true) {
 		if (node.nodeType === COMMENT_NODE) {
 			var data = /** @type {Comment} */ (node).data;
 
 			if (data === HYDRATION_END) {
-				if (depth === 0) return node;
+				if (depth === 0) {
+					hydration_debug('skip-nodes:end', {
+						remove,
+						removed,
+						start: hydration_debug_node(start),
+						end: hydration_debug_node(node),
+						sample,
+						stack: hydration_debug_stack()
+					});
+					return node;
+				}
 				depth -= 1;
 			} else if (
 				data === HYDRATION_START ||
@@ -167,7 +211,11 @@ export function skip_nodes(remove = true) {
 		}
 
 		var next = /** @type {TemplateNode} */ (get_next_sibling(node));
-		if (remove) node.remove();
+		if (remove) {
+			removed += 1;
+			if (sample.length < 8) sample.push(hydration_debug_node(node));
+			node.remove();
+		}
 		node = next;
 	}
 }
@@ -178,6 +226,9 @@ export function skip_nodes(remove = true) {
  */
 export function read_hydration_instruction(node) {
 	if (!node || node.nodeType !== COMMENT_NODE) {
+		hydration_debug('hydration-instruction:missing', {
+			node: hydration_debug_node(node)
+		});
 		w.hydration_mismatch();
 		throw HYDRATION_ERROR;
 	}
