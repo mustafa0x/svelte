@@ -5,7 +5,9 @@ import {
 	hydrate_node,
 	hydrating,
 	mounting_hydratable,
-	set_hydrate_node
+	set_hydrate_node,
+	mark_mounting_hydratable_next,
+	consume_mounting_hydratable_next
 } from './hydration.js';
 import {
 	create_text,
@@ -104,6 +106,7 @@ export function from_html(content, flags) {
 			assign_nodes(clone, clone);
 		}
 
+		mark_mounting_hydratable_next(clone);
 		return clone;
 	};
 }
@@ -163,6 +166,7 @@ function from_namespace(content, flags, ns = 'svg') {
 			assign_nodes(clone, clone);
 		}
 
+		mark_mounting_hydratable_next(clone);
 		return clone;
 	};
 }
@@ -337,6 +341,7 @@ export function text(value = '') {
 	if (!hydrating) {
 		var t = create_text(value + '');
 		assign_nodes(t, t);
+		mark_mounting_hydratable_next(t);
 		return t;
 	}
 
@@ -371,6 +376,7 @@ export function comment() {
 
 	assign_nodes(start, anchor);
 
+	mark_mounting_hydratable_next(frag);
 	return frag;
 }
 
@@ -398,6 +404,10 @@ export function append(anchor, dom) {
 	if (anchor === null) {
 		// edge case — void `<svelte:element>` with content
 		return;
+	}
+
+	if (consume_mounting_hydratable_next(/** @type {Node} */ (dom))) {
+		anchor.before(create_comment());
 	}
 
 	anchor.before(/** @type {Node} */ (dom));

@@ -1,4 +1,7 @@
 <script>
+	import ButtonLike from './ButtonLike.svelte';
+	import IconLike from './IconLike.svelte';
+	import LinkLike from './LinkLike.svelte';
 	import Throws from './Throws.svelte';
 
 	let {
@@ -7,10 +10,16 @@
 		answer = 42,
 		keyed = 'alpha',
 		raw = '<strong>raw</strong>',
-		more_link = true
+		more_link = true,
+		delayed_show = false
 	} = $props();
 
 	const uid = $props.id();
+	let delayed = $state(delayed_show);
+
+	export function set_delayed_show(value) {
+		delayed = value;
+	}
 </script>
 
 <label for={uid}>Generated id</label>
@@ -20,6 +29,12 @@
 	<p>shown</p>
 {:else}
 	<p>hidden</p>
+{/if}
+
+{#if delayed}
+	<p>delayed shown</p>
+{:else}
+	<p>delayed hidden</p>
 {/if}
 
 {#each items as item (item)}
@@ -43,6 +58,23 @@
 <div data-controlled-html>{@html raw}</div>
 
 <svelte:element this={more_link ? 'a' : 'div'} data-kind="more">more</svelte:element>
+
+<div data-sibling-components>
+	<ButtonLike>
+		<IconLike />
+		<span>button {keyed}</span>
+		<div>
+			<span>{#if show}⌘{:else}Ctrl{/if}</span>
+			<span>K</span>
+		</div>
+	</ButtonLike>
+	{#if show}
+		<LinkLike>sibling {keyed}</LinkLike>
+	{/if}
+	<LinkLike>tail {keyed}</LinkLike>
+</div>
+
+<LinkLike>snippet {keyed}</LinkLike>
 
 <svelte:boundary>
 	<Throws />

@@ -29,14 +29,20 @@ export default test({
 
 		flushSync();
 		await tick();
+		mounted.set_delayed_show(true);
+		flushSync();
+		await tick();
 		flushSync();
 
 		const html = target.innerHTML;
 		assert.include(html, '<!--[-->');
 		assert.include(html, '<!--[0-->');
+		assert.match(html, /<!--\[0-->\s*<p>delayed shown<\/p>/);
 		assert.include(html, '<!--$');
 		assert.include(html, '<!--[?');
 		assert.include(html, '<!--]-->');
+		assert.include(html, '<a data-snippet-link=""><!---->snippet alpha<!----></a>');
+		assert.include(html, '<div data-sibling-components="">');
 
 		const controlled = /** @type {HTMLDivElement} */ (
 			target.querySelector('[data-controlled-html]')
@@ -49,7 +55,7 @@ export default test({
 		target.innerHTML = html;
 		const hydrated = hydrate(mod.default, {
 			target,
-			props,
+			props: { ...props, delayed_show: true },
 			intro: false,
 			recover: false,
 			transformError: (error) => ({
@@ -63,6 +69,14 @@ export default test({
 
 		assert.deepEqual(warnings, []);
 		assert.htmlEqual(target.innerHTML, html);
+		assert.equal(
+			target.querySelector('body > section > a[data-snippet-link]')?.textContent,
+			'snippet alpha'
+		);
+		assert.equal(
+			target.querySelector('[data-sibling-components]')?.textContent?.replace(/\s+/g, ' ').trim(),
+			'button alpha ⌘ K sibling alpha tail alpha'
+		);
 
 		await unmount(hydrated);
 		target.remove();

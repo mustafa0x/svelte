@@ -60,7 +60,7 @@ export function if_block(node, fn, elseif = false) {
 
 				return;
 			}
-		} else if (mounting_hydratable) {
+		} else if (marker) {
 			/** @type {Comment} */ (marker).data = `${HYDRATION_START}${key}`;
 		}
 

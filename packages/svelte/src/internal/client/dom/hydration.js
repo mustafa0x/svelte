@@ -29,6 +29,22 @@ export function set_mounting_hydratable(value) {
 	mounting_hydratable = value;
 }
 
+let mounting_hydratable_next = false;
+const mounting_hydratable_next_nodes = new WeakSet();
+
+/** @param {Node} node */
+export function mark_mounting_hydratable_next(node) {
+	if (mounting_hydratable_next) {
+		mounting_hydratable_next = false;
+		mounting_hydratable_next_nodes.add(node);
+	}
+}
+
+/** @param {Node} node */
+export function consume_mounting_hydratable_next(node) {
+	return mounting_hydratable_next_nodes.delete(node);
+}
+
 /**
  * @param {TemplateNode} node
  * @param {string} [open]
@@ -86,7 +102,10 @@ export function hydrate_next() {
 
 /** @param {TemplateNode} node */
 export function reset(node) {
-	if (!hydrating) return;
+	if (!hydrating) {
+		if (mounting_hydratable) mounting_hydratable_next = false;
+		return;
+	}
 
 	// If the node has remaining siblings, something has gone wrong
 	if (get_next_sibling(hydrate_node) !== null) {
@@ -117,6 +136,8 @@ export function next(count = 1) {
 		}
 
 		hydrate_node = node;
+	} else if (mounting_hydratable && count === 1) {
+		mounting_hydratable_next = true;
 	}
 }
 
