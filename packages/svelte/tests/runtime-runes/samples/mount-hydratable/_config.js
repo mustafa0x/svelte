@@ -32,6 +32,9 @@ export default test({
 		mounted.set_delayed_show(true);
 		flushSync();
 		await tick();
+		mounted.set_dynamic_component(true);
+		flushSync();
+		await tick();
 		flushSync();
 
 		const html = target.innerHTML;
@@ -44,6 +47,16 @@ export default test({
 		assert.include(html, '<a data-snippet-link=""><!---->snippet alpha<!----></a>');
 		assert.include(html, '<div data-sibling-components="">');
 
+		const head_html = document.head.innerHTML;
+		assert.include(head_html, '<!--');
+		assert.include(head_html, '<link rel="alternate" hreflang="ar" href="/ar/about">');
+		assert.include(head_html, '<link rel="alternate" hreflang="x-default" href="/about">');
+		assert.include(head_html, '<link rel="dynamic-alternate" hreflang="ar" href="/ar/dynamic">');
+		assert.include(
+			head_html,
+			'<meta property="dynamic:locale:alternate" content="ar">'
+		);
+
 		const controlled = /** @type {HTMLDivElement} */ (
 			target.querySelector('[data-controlled-html]')
 		);
@@ -53,9 +66,10 @@ export default test({
 		await unmount(mounted);
 
 		target.innerHTML = html;
+		document.head.innerHTML = head_html;
 		const hydrated = hydrate(mod.default, {
 			target,
-			props: { ...props, delayed_show: true },
+			props: { ...props, delayed_show: true, enable_dynamic: true },
 			intro: false,
 			recover: false,
 			transformError: (error) => ({
@@ -69,6 +83,7 @@ export default test({
 
 		assert.deepEqual(warnings, []);
 		assert.htmlEqual(target.innerHTML, html);
+		assert.htmlEqual(document.head.innerHTML, head_html);
 		assert.equal(
 			target.querySelector('body > section > a[data-snippet-link]')?.textContent,
 			'snippet alpha'

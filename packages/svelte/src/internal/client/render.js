@@ -183,6 +183,8 @@ function _mount(
 		var anchor_node;
 		/** @type {Comment | undefined} */
 		var start_marker;
+		var was_mounting_hydratable = mounting_hydratable;
+		var keep_mounting_hydratable = false;
 
 		if (hydratable_mount) {
 			anchor_node =
@@ -216,14 +218,16 @@ function _mount(
 				}
 
 				should_intro = intro;
-				var was_mounting_hydratable = mounting_hydratable;
-				set_mounting_hydratable(hydratable_mount);
+				set_mounting_hydratable(was_mounting_hydratable || hydratable_mount);
 
 				try {
 					// @ts-expect-error the public typings are not what the actual function looks like
 					component = Component(anchor_node, props) || {};
+					keep_mounting_hydratable = hydratable_mount;
 				} finally {
-					set_mounting_hydratable(was_mounting_hydratable);
+					if (!keep_mounting_hydratable) {
+						set_mounting_hydratable(was_mounting_hydratable);
+					}
 					should_intro = true;
 				}
 
@@ -314,6 +318,10 @@ function _mount(
 			}
 
 			start_marker?.parentNode?.removeChild(start_marker);
+
+			if (keep_mounting_hydratable) {
+				set_mounting_hydratable(was_mounting_hydratable);
+			}
 		};
 	});
 

@@ -2,6 +2,8 @@
 	import ButtonLike from './ButtonLike.svelte';
 	import IconLike from './IconLike.svelte';
 	import LinkLike from './LinkLike.svelte';
+	import DynamicLike from './DynamicLike.svelte';
+	import HeadLike from './HeadLike.svelte';
 	import Throws from './Throws.svelte';
 
 	let {
@@ -11,14 +13,20 @@
 		keyed = 'alpha',
 		raw = '<strong>raw</strong>',
 		more_link = true,
+		enable_dynamic = false,
 		delayed_show = false
 	} = $props();
 
 	const uid = $props.id();
 	let delayed = $state(delayed_show);
+	let DynamicComponent = $state(enable_dynamic ? DynamicLike : null);
 
 	export function set_delayed_show(value) {
 		delayed = value;
+	}
+
+	export function set_dynamic_component(value) {
+		DynamicComponent = value ? DynamicLike : null;
 	}
 </script>
 
@@ -75,6 +83,14 @@
 </div>
 
 <LinkLike>snippet {keyed}</LinkLike>
+
+<HeadLike value={keyed} />
+
+{#key keyed}
+	{#if DynamicComponent}
+		<DynamicComponent value={keyed} />
+	{/if}
+{/key}
 
 <svelte:boundary>
 	<Throws />
