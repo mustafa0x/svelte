@@ -10,6 +10,20 @@ const props = {
 	more_link: true
 };
 
+function get_orphan_head_markers() {
+	return Array.from(document.head.childNodes)
+		.filter(
+			(node) =>
+				node.nodeType === Node.COMMENT_NODE &&
+				/** @type {Comment} */ (node).data !== '' &&
+				!/** @type {Comment} */ (node).data.startsWith('[') &&
+				!/** @type {Comment} */ (node).data.startsWith(']') &&
+				node.nextSibling?.nodeType === Node.COMMENT_NODE &&
+				/** @type {Comment} */ (node.nextSibling).data === ''
+		)
+		.map((node) => /** @type {Comment} */ (node).data);
+}
+
 export default test({
 	mode: ['client'],
 
@@ -30,6 +44,12 @@ export default test({
 		flushSync();
 		await tick();
 		mounted.set_delayed_show(true);
+		flushSync();
+		await tick();
+		mounted.set_dynamic_component(true);
+		flushSync();
+		await tick();
+		mounted.set_dynamic_component(false);
 		flushSync();
 		await tick();
 		mounted.set_dynamic_component(true);
@@ -56,6 +76,7 @@ export default test({
 			head_html,
 			'<meta property="dynamic:locale:alternate" content="ar">'
 		);
+		assert.deepEqual(get_orphan_head_markers(), []);
 
 		const controlled = /** @type {HTMLDivElement} */ (
 			target.querySelector('[data-controlled-html]')
@@ -84,6 +105,7 @@ export default test({
 		assert.deepEqual(warnings, []);
 		assert.htmlEqual(target.innerHTML, html);
 		assert.htmlEqual(document.head.innerHTML, head_html);
+		assert.deepEqual(get_orphan_head_markers(), []);
 		assert.equal(
 			target.querySelector('body > section > a[data-snippet-link]')?.textContent,
 			'snippet alpha'
