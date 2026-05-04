@@ -13,6 +13,7 @@
 		keyed = 'alpha',
 		raw = '<strong>raw</strong>',
 		more_link = true,
+		async_answer = 'done',
 		enable_dynamic = false,
 		delayed_show = false
 	} = $props();
@@ -55,6 +56,12 @@
 	<p>pending</p>
 {:then value}
 	<p>await {value}</p>
+{/await}
+
+{#await async_answer}
+	<p data-async-answer>async pending</p>
+{:then value}
+	<p data-async-answer>async {value}</p>
 {/await}
 
 {#key keyed}

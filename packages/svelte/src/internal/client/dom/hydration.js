@@ -45,6 +45,23 @@ export function set_mounting_hydratable(value) {
 	mounting_hydratable = value;
 }
 
+const mounting_hydratable_effects = new WeakSet();
+
+/** @param {import('#client').Effect} effect */
+export function mark_mounting_hydratable_effect(effect) {
+	mounting_hydratable_effects.add(effect);
+}
+
+/** @param {import('#client').Effect | null} effect */
+export function effect_is_mounting_hydratable(effect) {
+	while (effect !== null) {
+		if (mounting_hydratable_effects.has(effect)) return true;
+		effect = effect.parent;
+	}
+
+	return false;
+}
+
 let mounting_hydratable_next = false;
 const mounting_hydratable_next_nodes = new WeakSet();
 

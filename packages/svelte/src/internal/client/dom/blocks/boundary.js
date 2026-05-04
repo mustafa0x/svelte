@@ -350,6 +350,10 @@ export class Boundary {
 	#resolve(batch) {
 		this.is_pending = false;
 
+		if (this.#hydratable_mount && this.#hydrate_open) {
+			/** @type {Comment} */ (this.#hydrate_open).data = HYDRATION_START;
+		}
+
 		// any effects that were previously deferred should be transferred
 		// to the batch, which will flush in the next microtask
 		batch.transfer_effects(this.#dirty_effects, this.#maybe_dirty_effects);

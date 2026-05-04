@@ -17,6 +17,7 @@ import {
 	hydrate_node,
 	hydrating,
 	mounting_hydratable,
+	mark_mounting_hydratable_effect,
 	set_hydrate_node,
 	set_hydrating,
 	set_mounting_hydratable
@@ -227,7 +228,10 @@ function _mount(
 		/** @type {Comment | undefined} */
 		var start_marker;
 		var was_mounting_hydratable = mounting_hydratable;
-		var keep_mounting_hydratable = false;
+
+		if (hydratable_mount) {
+			mark_mounting_hydratable_effect(/** @type {Effect} */ (active_effect));
+		}
 
 		if (hydratable_mount) {
 			anchor_node =
@@ -281,11 +285,8 @@ function _mount(
 						hydratable_mount,
 						hydrate_node: hydration_debug_node(hydrate_node)
 					});
-					keep_mounting_hydratable = hydratable_mount;
 				} finally {
-					if (!keep_mounting_hydratable) {
-						set_mounting_hydratable(was_mounting_hydratable);
-					}
+					set_mounting_hydratable(was_mounting_hydratable);
 					should_intro = true;
 				}
 
@@ -383,9 +384,7 @@ function _mount(
 
 			start_marker?.parentNode?.removeChild(start_marker);
 
-			if (keep_mounting_hydratable) {
-				set_mounting_hydratable(was_mounting_hydratable);
-			}
+			set_mounting_hydratable(was_mounting_hydratable);
 		};
 	});
 

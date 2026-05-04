@@ -407,7 +407,16 @@ export function append(anchor, dom) {
 	}
 
 	if (consume_mounting_hydratable_next(/** @type {Node} */ (dom))) {
-		anchor.before(create_comment());
+		var marker = create_comment();
+		var start = /** @type {TemplateNode} */ (
+			dom.nodeType === DOCUMENT_FRAGMENT_NODE ? get_first_child(dom) : dom
+		);
+
+		anchor.before(marker);
+
+		if (active_effect?.nodes?.start === start) {
+			active_effect.nodes.start = marker;
+		}
 	}
 
 	anchor.before(/** @type {Node} */ (dom));
@@ -436,7 +445,12 @@ export function props_id(anchor) {
 	const id = `c${window.__svelte.uid++}`;
 
 	if (mounting_hydratable) {
-		anchor?.before(create_comment(`$${id}`));
+		var marker = create_comment(`$${id}`);
+		anchor?.before(marker);
+
+		if (anchor && active_effect?.nodes?.start === anchor) {
+			active_effect.nodes.start = marker;
+		}
 	}
 
 	return id;

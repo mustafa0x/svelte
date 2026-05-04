@@ -132,12 +132,18 @@ export function await_block(node, get_input, pending_fn, then_fn, catch_fn) {
 			input.then(
 				(v) => {
 					resolve(() => {
+						if (mounting_hydratable && marker) {
+							marker.data = HYDRATION_START_ELSE;
+						}
 						internal_set(value, v);
 						branches.ensure(THEN, then_fn && ((target) => then_fn(target, value)));
 					});
 				},
 				(e) => {
 					resolve(() => {
+						if (mounting_hydratable && marker) {
+							marker.data = HYDRATION_START_ELSE;
+						}
 						internal_set(error, e);
 						branches.ensure(CATCH, catch_fn && ((target) => catch_fn(target, error)));
 
@@ -157,6 +163,9 @@ export function await_block(node, get_input, pending_fn, then_fn, catch_fn) {
 				queue_micro_task(() => {
 					if (!resolved) {
 						resolve(() => {
+							if (mounting_hydratable && marker) {
+								marker.data = HYDRATION_START;
+							}
 							branches.ensure(PENDING, pending_fn);
 						});
 					}

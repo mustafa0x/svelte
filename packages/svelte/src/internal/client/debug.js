@@ -6,11 +6,17 @@ const DOCUMENT_NODE = 9;
 const DOCUMENT_FRAGMENT_NODE = 11;
 const SHOW_COMMENT = 128;
 
+function hydration_debug_enabled() {
+	return /** @type {any} */ (globalThis).__SVELTE_HYDRATION_DEBUG__ === true;
+}
+
 /**
  * @param {string} type
  * @param {Record<string, any>} [detail]
  */
 export function hydration_debug(type, detail = {}) {
+	if (!hydration_debug_enabled()) return;
+
 	var globals = /** @type {any} */ (globalThis);
 	var entry = {
 		t: now(),

@@ -60,6 +60,11 @@ import { captured_signals } from './legacy.js';
 import { without_reactive_context } from './dom/elements/bindings/shared.js';
 import { set_signal_status, update_derived_status } from './reactivity/status.js';
 import * as w from './warnings.js';
+import {
+	effect_is_mounting_hydratable,
+	mounting_hydratable,
+	set_mounting_hydratable
+} from './dom/hydration.js';
 
 /**
  * True if updating in an effect context that is reactive (i.e. not branch/root effects)
@@ -455,9 +460,11 @@ export function update_effect(effect) {
 
 	var previous_effect = active_effect;
 	var was_updating_effect = is_updating_effect;
+	var previous_mounting_hydratable = mounting_hydratable;
 
 	active_effect = effect;
 	is_updating_effect = (flags & (BRANCH_EFFECT | ROOT_EFFECT)) === 0; // Branch/root effects are not reactive contexts
+	set_mounting_hydratable(effect_is_mounting_hydratable(effect));
 
 	if (DEV) {
 		var previous_component_fn = dev_current_component_function;
@@ -490,6 +497,7 @@ export function update_effect(effect) {
 			}
 		}
 	} finally {
+		set_mounting_hydratable(previous_mounting_hydratable);
 		is_updating_effect = was_updating_effect;
 		active_effect = previous_effect;
 
