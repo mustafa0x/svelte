@@ -283,6 +283,7 @@ export function from_tree(structure, flags) {
 			assign_nodes(clone, clone);
 		}
 
+		mark_mounting_hydratable_next(clone);
 		return clone;
 	};
 }

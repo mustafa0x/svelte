@@ -86,6 +86,10 @@ export function html(
 	} else if (mounting_hydratable) {
 		marker = create_comment();
 		node.before(marker);
+
+		if (active_effect?.nodes?.start === node) {
+			active_effect.nodes.start = marker;
+		}
 	}
 
 	template_effect(() => {

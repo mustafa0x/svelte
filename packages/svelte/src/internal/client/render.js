@@ -115,10 +115,10 @@ export function hydrate(component, options) {
 	const previous_hydrate_node = hydrate_node;
 
 	try {
-		hydration_debug('hydrate:start', {
+		hydration_debug('hydrate:start', () => ({
 			target: hydration_debug_node(target),
 			markers: hydration_debug_markers(target)
-		});
+		}));
 
 		var anchor = get_first_child(target);
 		var skipped = 0;
@@ -132,11 +132,11 @@ export function hydrate(component, options) {
 		}
 
 		if (!anchor) {
-			hydration_debug('hydrate:anchor-missing', {
+			hydration_debug('hydrate:anchor-missing', () => ({
 				skipped,
 				target: hydration_debug_node(target),
 				markers: hydration_debug_markers(target)
-			});
+			}));
 			throw HYDRATION_ERROR;
 		}
 
@@ -150,10 +150,10 @@ export function hydrate(component, options) {
 		const instance = _mount(component, { ...options, anchor });
 
 		set_hydrating(false);
-		hydration_debug('hydrate:success', {
+		hydration_debug('hydrate:success', () => ({
 			hydrate_node: hydration_debug_node(hydrate_node),
 			markers: hydration_debug_markers(target)
-		});
+		}));
 
 		return /**  @type {Exports} */ (instance);
 	} catch (error) {
@@ -173,19 +173,19 @@ export function hydrate(component, options) {
 			e.hydration_failed();
 		}
 
-		hydration_debug('hydrate:recover', {
+		hydration_debug('hydrate:recover', () => ({
 			error: hydration_debug_error(error),
 			target: hydration_debug_node(target),
 			markers: hydration_debug_markers(target)
-		});
+		}));
 
 		// If an error occurred above, the operations might not yet have been initialised.
 		init_operations();
 		clear_text_content(target);
-		hydration_debug('hydrate:target-cleared', {
+		hydration_debug('hydrate:target-cleared', () => ({
 			target: hydration_debug_node(target),
 			markers: hydration_debug_markers(target)
-		});
+		}));
 
 		set_hydrating(false);
 		return mount(component, options);
@@ -269,7 +269,7 @@ function _mount(
 				}
 
 				should_intro = intro;
-				set_mounting_hydratable(was_mounting_hydratable || hydratable_mount);
+				set_mounting_hydratable(hydratable_mount);
 
 				try {
 					hydration_debug('mount:component-start', {

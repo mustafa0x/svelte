@@ -206,14 +206,14 @@ export function skip_nodes(remove = true) {
 
 			if (data === HYDRATION_END) {
 				if (depth === 0) {
-					hydration_debug('skip-nodes:end', {
+					hydration_debug('skip-nodes:end', () => ({
 						remove,
 						removed,
 						start: hydration_debug_node(start),
 						end: hydration_debug_node(node),
 						sample,
 						stack: hydration_debug_stack()
-					});
+					}));
 					return node;
 				}
 				depth -= 1;

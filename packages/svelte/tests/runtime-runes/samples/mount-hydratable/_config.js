@@ -48,10 +48,32 @@ export default test({
 
 		flushSync();
 		await tick();
+
+		const after_text = /** @type {HTMLParagraphElement} */ (
+			target.querySelector('[data-after-text]')
+		);
+		assert.equal(after_text.previousSibling?.nodeType, Node.TEXT_NODE);
+		assert.equal(after_text.previousSibling?.nodeValue, 'alpha');
+		assert.equal(after_text.previousSibling?.previousSibling?.nodeType, Node.COMMENT_NODE);
+		assert.equal(/** @type {Comment} */ (after_text.previousSibling?.previousSibling).data, '');
+
+		const nested_mount = /** @type {HTMLDivElement} */ (
+			target.querySelector('[data-nested-public-mount]')
+		);
+		assert.equal(nested_mount.innerHTML, '<span data-nested-public="">plain</span>');
+		assert.notInclude(nested_mount.innerHTML, '<!--[');
+		assert.notInclude(nested_mount.innerHTML, '<!--]');
+
 		async_deferred.resolve('done');
 		flushSync();
 		await tick();
 		mounted.set_delayed_show(true);
+		flushSync();
+		await tick();
+		mounted.set_show_html(false);
+		flushSync();
+		await tick();
+		mounted.set_nested_mount_visible(false);
 		flushSync();
 		await tick();
 		mounted.set_dynamic_component(true);
@@ -98,6 +120,9 @@ export default test({
 		assert.equal(controlled.firstChild?.nodeType, Node.COMMENT_NODE);
 		assert.equal(controlled.lastChild?.nodeType, Node.COMMENT_NODE);
 
+		const html_toggle = /** @type {HTMLDivElement} */ (target.querySelector('[data-html-toggle]'));
+		assert.equal(html_toggle.innerHTML, '<!--[-1--><!--]-->');
+
 		const normal_target = document.createElement('section');
 		document.body.appendChild(normal_target);
 		const normal = mount(mod.default, {
@@ -124,7 +149,13 @@ export default test({
 		document.head.innerHTML = head_html;
 		const hydrated = hydrate(mod.default, {
 			target,
-			props: { ...props, delayed_show: true, enable_dynamic: true },
+			props: {
+				...props,
+				delayed_show: true,
+				enable_dynamic: true,
+				html_visible: false,
+				nested_mount_visible: false
+			},
 			intro: false,
 			recover: false,
 			transformError: (error) => ({
