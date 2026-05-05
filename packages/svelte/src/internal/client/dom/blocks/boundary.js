@@ -38,7 +38,8 @@ import {
 	get_hydration_open,
 	next,
 	skip_nodes,
-	set_hydrate_node
+	set_hydrate_node,
+	set_mounting_hydratable
 } from '../hydration.js';
 import { queue_micro_task } from '../task.js';
 import * as e from '../../errors.js';
@@ -387,10 +388,12 @@ export class Boundary {
 		var previous_effect = active_effect;
 		var previous_reaction = active_reaction;
 		var previous_ctx = component_context;
+		var previous_mounting_hydratable = mounting_hydratable;
 
 		set_active_effect(this.#effect);
 		set_active_reaction(this.#effect);
 		set_component_context(this.#effect.ctx);
+		set_mounting_hydratable(this.#hydratable_mount || previous_mounting_hydratable);
 
 		try {
 			Batch.ensure();
@@ -402,6 +405,7 @@ export class Boundary {
 			set_active_effect(previous_effect);
 			set_active_reaction(previous_reaction);
 			set_component_context(previous_ctx);
+			set_mounting_hydratable(previous_mounting_hydratable);
 		}
 	}
 

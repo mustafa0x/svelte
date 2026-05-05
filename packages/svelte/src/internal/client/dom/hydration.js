@@ -63,19 +63,22 @@ export function effect_is_mounting_hydratable(effect) {
 }
 
 let mounting_hydratable_next = false;
+/** @type {import('#client').Effect | null} */
+let mounting_hydratable_next_effect = null;
 const mounting_hydratable_next_nodes = new WeakSet();
 
 /** @param {Node} node */
 export function mark_mounting_hydratable_next(node) {
-	if (mounting_hydratable_next) {
+	if (mounting_hydratable_next && mounting_hydratable_next_effect === active_effect) {
 		mounting_hydratable_next = false;
+		mounting_hydratable_next_effect = null;
 		mounting_hydratable_next_nodes.add(node);
 	}
 }
 
 /** @param {Node} node */
 export function consume_mounting_hydratable_next(node) {
-	return mounting_hydratable_next_nodes.delete(node);
+	return mounting_hydratable && mounting_hydratable_next_nodes.delete(node);
 }
 
 /**
@@ -145,7 +148,10 @@ export function hydrate_next() {
 /** @param {TemplateNode} node */
 export function reset(node) {
 	if (!hydrating) {
-		if (mounting_hydratable) mounting_hydratable_next = false;
+		if (mounting_hydratable && mounting_hydratable_next_effect === active_effect) {
+			mounting_hydratable_next = false;
+			mounting_hydratable_next_effect = null;
+		}
 		return;
 	}
 
@@ -185,6 +191,7 @@ export function next(count = 1) {
 		hydrate_node = node;
 	} else if (mounting_hydratable && count === 1) {
 		mounting_hydratable_next = true;
+		mounting_hydratable_next_effect = active_effect;
 	}
 }
 

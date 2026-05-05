@@ -11,6 +11,7 @@
 	let {
 		show = true,
 		items = [1, 2],
+		controlled_items: initial_controlled_items = items,
 		answer = 42,
 		keyed = 'alpha',
 		raw = '<strong>raw</strong>',
@@ -26,6 +27,7 @@
 	let delayed = $state(delayed_show);
 	let show_html = $state(html_visible);
 	let show_nested_mount = $state(nested_mount_visible);
+	let controlled_items = $state(initial_controlled_items);
 	let DynamicComponent = $state(enable_dynamic ? DynamicLike : null);
 
 	export function set_delayed_show(value) {
@@ -38,6 +40,10 @@
 
 	export function set_nested_mount_visible(value) {
 		show_nested_mount = value;
+	}
+
+	export function set_controlled_items(value) {
+		controlled_items = value;
 	}
 
 	export function set_dynamic_component(value) {
@@ -80,6 +86,14 @@
 {:else}
 	<span>empty</span>
 {/each}
+
+<ul data-controlled-each>
+	{#each controlled_items as item (item)}
+		<li>controlled {item}</li>
+	{:else}
+		<li>controlled empty</li>
+	{/each}
+</ul>
 
 {#await answer}
 	<p>pending</p>
@@ -143,5 +157,8 @@
 
 	{#snippet failed(error)}
 		<p data-boundary-failed>{error.message}</p>
+		{#if show}
+			<span data-boundary-failed-nested>nested failed</span>
+		{/if}
 	{/snippet}
 </svelte:boundary>

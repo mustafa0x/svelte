@@ -64,6 +64,11 @@ export default test({
 		assert.notInclude(nested_mount.innerHTML, '<!--[');
 		assert.notInclude(nested_mount.innerHTML, '<!--]');
 
+		const controlled_each = /** @type {HTMLUListElement} */ (
+			target.querySelector('[data-controlled-each]')
+		);
+		assert.include(controlled_each.innerHTML, '<!--[-->');
+
 		async_deferred.resolve('done');
 		flushSync();
 		await tick();
@@ -74,6 +79,9 @@ export default test({
 		flushSync();
 		await tick();
 		mounted.set_nested_mount_visible(false);
+		flushSync();
+		await tick();
+		mounted.set_controlled_items([]);
 		flushSync();
 		await tick();
 		mounted.set_dynamic_component(true);
@@ -120,8 +128,18 @@ export default test({
 		assert.equal(controlled.firstChild?.nodeType, Node.COMMENT_NODE);
 		assert.equal(controlled.lastChild?.nodeType, Node.COMMENT_NODE);
 
+		assert.equal(controlled_each.innerHTML, '<!--[!--><li>controlled empty</li><!--]-->');
+
 		const html_toggle = /** @type {HTMLDivElement} */ (target.querySelector('[data-html-toggle]'));
 		assert.equal(html_toggle.innerHTML, '<!--[-1--><!--]-->');
+
+		const failed_nested = /** @type {HTMLSpanElement} */ (
+			target.querySelector('[data-boundary-failed-nested]')
+		);
+		assert.equal(failed_nested.previousSibling?.nodeType, Node.COMMENT_NODE);
+		assert.equal(/** @type {Comment} */ (failed_nested.previousSibling).data, '[0');
+		assert.equal(failed_nested.nextSibling?.nodeType, Node.COMMENT_NODE);
+		assert.equal(/** @type {Comment} */ (failed_nested.nextSibling).data, ']');
 
 		const normal_target = document.createElement('section');
 		document.body.appendChild(normal_target);
@@ -154,7 +172,8 @@ export default test({
 				delayed_show: true,
 				enable_dynamic: true,
 				html_visible: false,
-				nested_mount_visible: false
+				nested_mount_visible: false,
+				controlled_items: []
 			},
 			intro: false,
 			recover: false,

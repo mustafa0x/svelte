@@ -67,8 +67,9 @@ export function index(_, i) {
  * @param {EachState} state
  * @param {Effect[]} to_destroy
  * @param {null | Node} controlled_anchor
+ * @param {Comment | undefined} controlled_marker
  */
-function pause_effects(state, to_destroy, controlled_anchor) {
+function pause_effects(state, to_destroy, controlled_anchor, controlled_marker) {
 	/** @type {TransitionManager[]} */
 	var transitions = [];
 	var length = to_destroy.length;
@@ -120,6 +121,7 @@ function pause_effects(state, to_destroy, controlled_anchor) {
 			var parent_node = /** @type {Element} */ (anchor.parentNode);
 
 			clear_text_content(parent_node);
+			if (controlled_marker) parent_node.append(controlled_marker);
 			parent_node.append(anchor);
 
 			state.items.clear();
@@ -253,7 +255,7 @@ export function each(node, flags, get_collection, get_key, render_fn, fallback_f
 		state.pending.delete(batch);
 
 		state.fallback = fallback;
-		reconcile(state, array, anchor, flags, get_key);
+		reconcile(state, array, anchor, flags, get_key, marker);
 
 		if (fallback !== null) {
 			if (array.length === 0) {
@@ -447,9 +449,10 @@ function skip_to_branch(effect) {
  * @param {Element | Comment | Text} anchor
  * @param {number} flags
  * @param {(value: V, index: number) => any} get_key
+ * @param {Comment | undefined} controlled_marker
  * @returns {void}
  */
-function reconcile(state, array, anchor, flags, get_key) {
+function reconcile(state, array, anchor, flags, get_key, controlled_marker) {
 	var is_animated = (flags & EACH_IS_ANIMATED) !== 0;
 
 	var length = array.length;
@@ -663,7 +666,7 @@ function reconcile(state, array, anchor, flags, get_key) {
 				}
 			}
 
-			pause_effects(state, to_destroy, controlled_anchor);
+			pause_effects(state, to_destroy, controlled_anchor, controlled_marker);
 		}
 	}
 
